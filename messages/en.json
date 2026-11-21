@@ -1,0 +1,173 @@
+{
+  "common": {
+    "appName": "BizFlow",
+    "tagline": "Business management, simplified.",
+    "loading": "Loading…",
+    "save": "Save",
+    "cancel": "Cancel",
+    "continue": "Continue",
+    "comingSoon": "Soon",
+    "language": "Language",
+    "optional": "optional",
+    "languages": {
+      "sq": "Shqip",
+      "en": "English"
+    }
+  },
+  "validation": {
+    "required": "This field is required.",
+    "email": "Enter a valid email address.",
+    "tooLong": "This text is too long.",
+    "nameMin": "Name must be at least 2 characters.",
+    "companyNameMin": "Business name must be at least 2 characters.",
+    "passwordMin": "Password must be at least 8 characters.",
+    "passwordMax": "Password can be at most 72 characters.",
+    "passwordWeak": "Password must contain letters and numbers.",
+    "passwordsMismatch": "Passwords do not match.",
+    "businessNumber": "Business number (NUI) must be 6–12 digits.",
+    "phone": "Enter a valid phone number.",
+    "plan": "Choose a plan."
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "invalidInput": "Please check the highlighted fields.",
+    "rateLimited": "Too many attempts. Try again in a few minutes.",
+    "unauthenticated": "Your session expired. Please sign in again.",
+    "forbidden": "You don't have permission to do that.",
+    "notConfiguredTitle": "Supabase is not configured",
+    "notConfigured": "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local (see .env.example), then restart the server.",
+    "notFoundTitle": "Page not found",
+    "notFound": "The page you're looking for doesn't exist or you don't have access to it.",
+    "backHome": "Back to dashboard"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "fullName": "Full name",
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Welcome back! Enter your details to continue.",
+      "submit": "Sign in",
+      "forgot": "Forgot your password?",
+      "noAccount": "Don't have an account?",
+      "signupLink": "Sign up",
+      "linkInvalid": "That link is invalid or has expired. Please try again."
+    },
+    "signup": {
+      "title": "Create your account",
+      "subtitle": "Start your 14-day free trial. No card required.",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "loginLink": "Sign in",
+      "checkEmailTitle": "Check your email",
+      "checkEmail": "We sent you a confirmation link. Open it to activate your account and register your business.",
+      "passwordHint": "At least 8 characters, with letters and numbers."
+    },
+    "forgot": {
+      "title": "Reset your password",
+      "subtitle": "Enter your email and we'll send you a reset link.",
+      "submit": "Send link",
+      "sent": "If an account exists for that email, you'll receive a reset link shortly.",
+      "back": "Back to sign in"
+    },
+    "reset": {
+      "title": "Set a new password",
+      "subtitle": "Choose a new password for your account.",
+      "submit": "Save password",
+      "newPassword": "New password",
+      "expired": "This reset link has expired or is invalid. Request a new one.",
+      "requestNew": "Request a new link"
+    },
+    "errors": {
+      "invalidCredentials": "Incorrect email or password.",
+      "emailNotConfirmed": "Please confirm your email before signing in.",
+      "userExists": "An account with this email already exists.",
+      "samePassword": "Your new password must differ from the old one."
+    }
+  },
+  "onboarding": {
+    "title": "Register your business",
+    "subtitle": "These details appear on your documents and can be changed later.",
+    "companyName": "Business name",
+    "companyNamePlaceholder": "e.g. Alfa Tregti LLC",
+    "businessNumber": "Business number (NUI)",
+    "vatNumber": "VAT number",
+    "phone": "Phone",
+    "city": "City",
+    "address": "Address",
+    "plan": "Choose a plan",
+    "perMonth": "/month",
+    "employees": "Up to {count} employees",
+    "trialNote": "{days}-day free trial. You can change plans at any time.",
+    "submit": "Create business",
+    "signedInAs": "Signed in as {email}",
+    "errors": {
+      "companyLimit": "You've reached the maximum number of businesses per account."
+    }
+  },
+  "nav": {
+    "main": "Main",
+    "operations": "Operations",
+    "management": "Management",
+    "dashboard": "Dashboard",
+    "products": "Products",
+    "inventory": "Inventory",
+    "customers": "Customers",
+    "suppliers": "Suppliers",
+    "sales": "Sales",
+    "purchases": "Purchases",
+    "expenses": "Expenses",
+    "reports": "Reports",
+    "employees": "Employees",
+    "activity": "Activity",
+    "billing": "Subscription",
+    "settings": "Settings",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu"
+  },
+  "topbar": {
+    "account": "Account",
+    "logout": "Sign out",
+    "switchCompany": "Switch business",
+    "addCompany": "Add a new business"
+  },
+  "roles": {
+    "super_admin": "Super admin",
+    "owner": "Owner",
+    "admin": "Admin",
+    "manager": "Manager",
+    "employee": "Employee"
+  },
+  "subscription": {
+    "status": {
+      "trialing": "Trial",
+      "active": "Active",
+      "past_due": "Past due",
+      "canceled": "Canceled",
+      "expired": "Expired"
+    },
+    "trialEnds": "Free trial ends on {date}",
+    "plan": "{name} plan"
+  },
+  "dashboard": {
+    "welcome": "Welcome, {name}",
+    "subtitle": "Overview for {company}",
+    "salesThisMonth": "Sales this month",
+    "expensesThisMonth": "Expenses this month",
+    "lowStock": "Low-stock products",
+    "products": "Active products",
+    "noData": "No data yet",
+    "gettingStarted": "Getting started",
+    "gettingStartedSubtitle": "Products and inventory arrive in the next phase.",
+    "stepCompany": "Business registered",
+    "stepProducts": "Add your first products",
+    "stepInventory": "Record opening stock",
+    "stepTeam": "Invite your team",
+    "companyDetails": "Business details",
+    "yourRole": "Your role",
+    "planLabel": "Plan",
+    "seats": "Employee seats",
+    "unlimited": "Unlimited"
+  }
+}
