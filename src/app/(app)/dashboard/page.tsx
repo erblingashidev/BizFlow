@@ -147,22 +147,27 @@ export default async function DashboardPage() {
   }));
   const hasMonthlyData = monthly.some((m) => m.sales > 0 || m.purchases > 0);
 
-  const firstName =
-    (ctx.user.user_metadata?.full_name as string | undefined)?.split(" ")[0] ?? ctx.user.email ?? "";
+  const firstName = (ctx.user.user_metadata?.full_name as string | undefined)?.split(" ")[0] ?? ctx.user.email ?? "";
   const sub = ctx.subscription;
   const steps = [
     { label: t("dashboard.stepCompany"), done: true, href: null },
     { label: t("dashboard.stepProducts"), done: s.products > 0, href: "/products/new" },
-    { label: t("dashboard.stepInventory"), done: (movementsRes?.count ?? 0) > 0, href: "/inventory" },
+    {
+      label: t("dashboard.stepInventory"),
+      done: (movementsRes?.count ?? 0) > 0,
+      href: "/inventory",
+    },
     { label: t("dashboard.stepTeam"), done: (membersRes.count ?? 0) > 1, href: null },
   ];
-  const showSteps = steps.some((step) => !step.done);
+  const showSteps = can("employees.manage") && steps.some((step) => !step.done);
   const lowStock = lowRes?.data ?? [];
   const activity = activityRes.data ?? [];
   const unlabeledProductIds = [
     ...new Set(
       activity
-        .filter((a) => a.entity_type === "product" && a.entity_id && !(a.metadata as Record<string, unknown> | null)?.label)
+        .filter(
+          (a) => a.entity_type === "product" && a.entity_id && !(a.metadata as Record<string, unknown> | null)?.label,
+        )
         .map((a) => a.entity_id as string),
     ),
   ];
@@ -194,105 +199,154 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label={t("dashboard.salesThisMonth")}
-          value={formatCurrency(s.sales_month, locale)}
-          hint={t("dashboard.ordersCount", { count: s.sales_orders_month })}
-          icon={ShoppingCart}
-          tone="success"
-        />
-        <StatCard
-          label={t("dashboard.purchasesThisMonth")}
-          value={formatCurrency(s.purchases_month, locale)}
-          hint={t("dashboard.expensesHint", { amount: formatCurrency(s.expenses_month, locale) })}
-          icon={Truck}
-          tone="primary"
-        />
-        <StatCard
-          label={t("dashboard.stockValue")}
-          value={formatCurrency(s.stock_value, locale)}
-          hint={t("dashboard.atPurchasePrice")}
-          icon={Boxes}
-          tone="muted"
-          href={canInventory ? "/inventory/report" : undefined}
-        />
-        <StatCard
-          label={t("dashboard.lowStock")}
-          value={formatNumber(s.low_stock, locale)}
-          hint={t("dashboard.lowStockHint")}
-          icon={AlertTriangle}
-          tone={s.low_stock > 0 ? "destructive" : "muted"}
-          href={canInventory ? "/inventory?stock=low" : undefined}
-        />
+        {canSales && (
+          <StatCard
+            label={t("dashboard.salesThisMonth")}
+            value={formatCurrency(s.sales_month, locale)}
+            hint={t("dashboard.ordersCount", { count: s.sales_orders_month })}
+            icon={ShoppingCart}
+            tone="success"
+          />
+        )}
+        {canPurchases && (
+          <StatCard
+            label={t("dashboard.purchasesThisMonth")}
+            value={formatCurrency(s.purchases_month, locale)}
+            hint={
+              can("expenses.view")
+                ? t("dashboard.expensesHint", { amount: formatCurrency(s.expenses_month, locale) })
+                : undefined
+            }
+            icon={Truck}
+            tone="primary"
+          />
+        )}
+        {canInventory && (
+          <>
+            <StatCard
+              label={t("dashboard.stockValue")}
+              value={formatCurrency(s.stock_value, locale)}
+              hint={t("dashboard.atPurchasePrice")}
+              icon={Boxes}
+              tone="muted"
+              href="/inventory/report"
+            />
+            <StatCard
+              label={t("dashboard.lowStock")}
+              value={formatNumber(s.low_stock, locale)}
+              hint={t("dashboard.lowStockHint")}
+              icon={AlertTriangle}
+              tone={s.low_stock > 0 ? "destructive" : "muted"}
+              href="/inventory?stock=low"
+            />
+          </>
+        )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <MiniStat icon={ClipboardList} label={t("dashboard.pendingSales")} value={formatNumber(s.pending_sales, locale)} />
-        <MiniStat icon={ClipboardList} label={t("dashboard.pendingPurchases")} value={formatNumber(s.pending_purchases, locale)} />
-        <MiniStat icon={Package} label={t("dashboard.products")} value={formatNumber(s.products, locale)} href="/products" />
-        <MiniStat icon={Users} label={t("nav.customers")} value={formatNumber(s.customers, locale)} href={can("customers.view") ? "/customers" : undefined} />
-        <MiniStat icon={Receipt} label={t("nav.suppliers")} value={formatNumber(s.suppliers, locale)} href={can("suppliers.view") ? "/suppliers" : undefined} />
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+        {canSales && (
+          <MiniStat
+            icon={ClipboardList}
+            label={t("dashboard.pendingSales")}
+            value={formatNumber(s.pending_sales, locale)}
+          />
+        )}
+        {canPurchases && (
+          <MiniStat
+            icon={ClipboardList}
+            label={t("dashboard.pendingPurchases")}
+            value={formatNumber(s.pending_purchases, locale)}
+          />
+        )}
+        <MiniStat
+          icon={Package}
+          label={t("dashboard.products")}
+          value={formatNumber(s.products, locale)}
+          href="/products"
+        />
+        {can("customers.view") && (
+          <MiniStat
+            icon={Users}
+            label={t("nav.customers")}
+            value={formatNumber(s.customers, locale)}
+            href="/customers"
+          />
+        )}
+        {can("suppliers.view") && (
+          <MiniStat
+            icon={Receipt}
+            label={t("nav.suppliers")}
+            value={formatNumber(s.suppliers, locale)}
+            href="/suppliers"
+          />
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>{t("dashboard.monthlySales")}</CardTitle>
-            <CardDescription>{t("dashboard.monthlySalesSubtitle")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {hasMonthlyData ? (
-              <MonthlyChart
-                data={monthly}
-                salesLabel={t("dashboard.sales")}
-                purchasesLabel={t("dashboard.purchases")}
-                showPurchases={canPurchases}
-              />
-            ) : (
-              <EmptyState icon={ShoppingCart} title={t("dashboard.noSalesYet")} description={t("dashboard.noSalesYetHint")} />
-            )}
-          </CardContent>
-        </Card>
+        {(canSales || canPurchases) && (
+          <Card className={cn(canInventory ? "lg:col-span-2" : "lg:col-span-3")}>
+            <CardHeader>
+              <CardTitle>{t("dashboard.monthlySales")}</CardTitle>
+              <CardDescription>{t("dashboard.monthlySalesSubtitle")}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {hasMonthlyData ? (
+                <MonthlyChart
+                  data={monthly}
+                  salesLabel={t("dashboard.sales")}
+                  purchasesLabel={t("dashboard.purchases")}
+                  showPurchases={canPurchases}
+                />
+              ) : (
+                <EmptyState
+                  icon={ShoppingCart}
+                  title={t("dashboard.noSalesYet")}
+                  description={t("dashboard.noSalesYetHint")}
+                />
+              )}
+            </CardContent>
+          </Card>
+        )}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("dashboard.lowStockAlerts")}</CardTitle>
-            {canInventory && (
+        {canInventory && (
+          <Card className={cn(!(canSales || canPurchases) && "lg:col-span-3")}>
+            <CardHeader>
+              <CardTitle>{t("dashboard.lowStockAlerts")}</CardTitle>
               <CardAction>
                 <Link href="/inventory?stock=low" className={buttonVariants({ variant: "ghost", size: "sm" })}>
                   {t("dashboard.viewAll")}
                   <ArrowRight aria-hidden />
                 </Link>
               </CardAction>
-            )}
-          </CardHeader>
-          <CardContent>
-            {lowStock.length > 0 ? (
-              <ul className="grid gap-3">
-                {lowStock.map((p) => (
-                  <li key={p.id} className="flex items-center justify-between gap-3 text-sm">
-                    <Link href={`/products/${p.id}`} className="grid min-w-0">
-                      <span className="truncate font-medium hover:underline">{p.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {t("dashboard.stockOfMin", {
-                          qty: formatNumber(p.quantity, locale),
-                          min: formatNumber(p.min_stock, locale),
-                          unit: t(`units.${p.unit}`),
-                        })}
-                      </span>
-                    </Link>
-                    <StockStatusBadge status={p.stock_status ?? "ok"} />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                <CheckCircle2 className="size-4 text-success" aria-hidden />
-                {t("dashboard.noLowStock")}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              {lowStock.length > 0 ? (
+                <ul className="grid gap-3">
+                  {lowStock.map((p) => (
+                    <li key={p.id} className="flex items-center justify-between gap-3 text-sm">
+                      <Link href={`/products/${p.id}`} className="grid min-w-0">
+                        <span className="truncate font-medium hover:underline">{p.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {t("dashboard.stockOfMin", {
+                            qty: formatNumber(p.quantity, locale),
+                            min: formatNumber(p.min_stock, locale),
+                            unit: t(`units.${p.unit}`),
+                          })}
+                        </span>
+                      </Link>
+                      <StockStatusBadge status={p.stock_status ?? "ok"} />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <CheckCircle2 className="size-4 text-success" aria-hidden />
+                  {t("dashboard.noLowStock")}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
@@ -304,14 +358,21 @@ export default async function DashboardPage() {
             {transactions.length > 0 ? (
               <ul className="divide-y">
                 {transactions.map((tx) => (
-                  <li key={`${tx.kind}-${tx.id}`} className="flex items-center gap-3 py-2.5 text-sm first:pt-0 last:pb-0">
+                  <li
+                    key={`${tx.kind}-${tx.id}`}
+                    className="flex items-center gap-3 py-2.5 text-sm first:pt-0 last:pb-0"
+                  >
                     <span
                       className={cn(
                         "grid size-8 shrink-0 place-items-center rounded-lg",
                         tx.kind === "sale" ? "bg-success/10 text-success" : "bg-primary/10 text-primary",
                       )}
                     >
-                      {tx.kind === "sale" ? <ShoppingCart className="size-4" aria-hidden /> : <Truck className="size-4" aria-hidden />}
+                      {tx.kind === "sale" ? (
+                        <ShoppingCart className="size-4" aria-hidden />
+                      ) : (
+                        <Truck className="size-4" aria-hidden />
+                      )}
                     </span>
                     <div className="grid min-w-0 flex-1">
                       <span className="truncate font-medium">
@@ -319,7 +380,8 @@ export default async function DashboardPage() {
                         {tx.party && <span className="font-normal text-muted-foreground"> · {tx.party}</span>}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {t(tx.kind === "sale" ? "dashboard.sale" : "dashboard.purchase")} · {formatCalendarDate(tx.date, locale)}
+                        {t(tx.kind === "sale" ? "dashboard.sale" : "dashboard.purchase")} ·{" "}
+                        {formatCalendarDate(tx.date, locale)}
                       </span>
                     </div>
                     <Badge variant="outline">{t(`orderStatus.${tx.status}`)}</Badge>
@@ -328,7 +390,11 @@ export default async function DashboardPage() {
                 ))}
               </ul>
             ) : (
-              <EmptyState icon={Wallet} title={t("dashboard.noTransactions")} description={t("dashboard.noTransactionsHint")} />
+              <EmptyState
+                icon={Wallet}
+                title={t("dashboard.noTransactions")}
+                description={t("dashboard.noTransactionsHint")}
+              />
             )}
           </CardContent>
         </Card>
@@ -352,7 +418,9 @@ export default async function DashboardPage() {
                   return (
                     <li key={a.id} className="grid gap-0.5 text-sm">
                       <span>
-                        <span className="font-medium">{a.user?.full_name || a.user?.email || t("dashboard.someone")}</span>{" "}
+                        <span className="font-medium">
+                          {a.user?.full_name || a.user?.email || t("dashboard.someone")}
+                        </span>{" "}
                         <span className="text-muted-foreground">{t.has(key) ? t(key) : a.action}</span>
                         {label && <span className="font-medium"> {label}</span>}
                       </span>
@@ -403,12 +471,27 @@ export default async function DashboardPage() {
   );
 }
 
-function MiniStat({ icon: Icon, label, value, href }: { icon: typeof Package; label: string; value: string; href?: string }) {
+function MiniStat({
+  icon: Icon,
+  label,
+  value,
+  href,
+}: {
+  icon: typeof Package;
+  label: string;
+  value: string;
+  href?: string;
+}) {
   const body = (
-    <div className={cn("flex items-center gap-3 rounded-xl border bg-card px-4 py-3", href && "transition-colors hover:bg-muted/50")}>
+    <div
+      className={cn(
+        "flex items-center gap-3 rounded-xl border bg-card px-4 py-3",
+        href && "transition-colors hover:bg-muted/50",
+      )}
+    >
       <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
       <div className="grid min-w-0">
-        <span className="truncate text-xs text-muted-foreground">{label}</span>
+        <span className="line-clamp-2 text-xs leading-tight text-muted-foreground">{label}</span>
         <span className="font-semibold tabular-nums">{value}</span>
       </div>
     </div>

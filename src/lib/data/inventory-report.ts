@@ -22,7 +22,10 @@ export type InventoryReportRow = {
 
 const CHUNK = 1000;
 
-/** Reads the full report in chunks (PostgREST caps responses at max-rows). */
+/**
+ * Reads the full report in chunks (PostgREST caps responses at max-rows). Archived products
+ * are left out unless they still hold stock somewhere.
+ */
 export async function fetchInventoryReport(
   supabase: DbClient,
   companyId: string,
@@ -36,6 +39,7 @@ export async function fetchInventoryReport(
         p_warehouse_id: filters.warehouseId,
         p_category_id: filters.categoryId,
       })
+      .or("is_active.eq.true,total_quantity.neq.0")
       .range(offset, offset + CHUNK - 1);
     if (error) throw error;
     rows.push(...((data ?? []) as InventoryReportRow[]));
