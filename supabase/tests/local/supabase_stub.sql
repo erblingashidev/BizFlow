@@ -19,25 +19,32 @@ $$;
 create schema if not exists auth;
 create schema if not exists storage;
 
-create table auth.users (
-  id                 uuid primary key default gen_random_uuid(),
-  email              text unique,
-  raw_user_meta_data jsonb not null default '{}'::jsonb,
-  created_at         timestamptz not null default now()
-);
+-- Skipped when a real Supabase Auth (GoTrue) server has already migrated the auth schema.
+do $stub$
+begin
+  if to_regclass('auth.users') is null then
+    create table auth.users (
+      id                 uuid primary key default gen_random_uuid(),
+      email              text unique,
+      raw_user_meta_data jsonb not null default '{}'::jsonb,
+      created_at         timestamptz not null default now()
+    );
 
-create or replace function auth.uid() returns uuid
-language sql stable as $$
-  select nullif(coalesce(
-    current_setting('request.jwt.claim.sub', true),
-    nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'
-  ), '')::uuid;
-$$;
+    create or replace function auth.uid() returns uuid
+    language sql stable as $$
+      select nullif(coalesce(
+        current_setting('request.jwt.claim.sub', true),
+        nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'
+      ), '')::uuid;
+    $$;
 
-create or replace function auth.role() returns text
-language sql stable as $$
-  select nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role';
-$$;
+    create or replace function auth.role() returns text
+    language sql stable as $$
+      select nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'role';
+    $$;
+  end if;
+end;
+$stub$;
 
 create table storage.buckets (
   id                 text primary key,

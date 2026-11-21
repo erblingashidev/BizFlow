@@ -1,0 +1,173 @@
+{
+  "common": {
+    "appName": "BizFlow",
+    "tagline": "Menaxhimi i biznesit, i thjeshtë.",
+    "loading": "Duke u ngarkuar…",
+    "save": "Ruaj",
+    "cancel": "Anulo",
+    "continue": "Vazhdo",
+    "comingSoon": "Së shpejti",
+    "language": "Gjuha",
+    "optional": "opsionale",
+    "languages": {
+      "sq": "Shqip",
+      "en": "English"
+    }
+  },
+  "validation": {
+    "required": "Kjo fushë është e detyrueshme.",
+    "email": "Shkruaj një adresë email të vlefshme.",
+    "tooLong": "Teksti është shumë i gjatë.",
+    "nameMin": "Emri duhet të ketë të paktën 2 karaktere.",
+    "companyNameMin": "Emri i biznesit duhet të ketë të paktën 2 karaktere.",
+    "passwordMin": "Fjalëkalimi duhet të ketë të paktën 8 karaktere.",
+    "passwordMax": "Fjalëkalimi mund të ketë deri në 72 karaktere.",
+    "passwordWeak": "Fjalëkalimi duhet të përmbajë shkronja dhe numra.",
+    "passwordsMismatch": "Fjalëkalimet nuk përputhen.",
+    "businessNumber": "NUI duhet të përmbajë 6–12 shifra.",
+    "phone": "Shkruaj një numër telefoni të vlefshëm.",
+    "plan": "Zgjidh një plan."
+  },
+  "errors": {
+    "generic": "Diçka shkoi keq. Provo përsëri.",
+    "invalidInput": "Kontrollo fushat e shënuara.",
+    "rateLimited": "Shumë përpjekje. Provo përsëri pas pak minutash.",
+    "unauthenticated": "Seanca ka skaduar. Hyr përsëri.",
+    "forbidden": "Nuk ke leje për këtë veprim.",
+    "notConfiguredTitle": "Supabase nuk është konfiguruar",
+    "notConfigured": "Vendos NEXT_PUBLIC_SUPABASE_URL dhe NEXT_PUBLIC_SUPABASE_ANON_KEY në .env.local (shih .env.example), pastaj rinis serverin.",
+    "notFoundTitle": "Faqja nuk u gjet",
+    "notFound": "Faqja që kërkon nuk ekziston ose nuk ke qasje në të.",
+    "backHome": "Kthehu në panel"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Fjalëkalimi",
+    "confirmPassword": "Konfirmo fjalëkalimin",
+    "fullName": "Emri i plotë",
+    "login": {
+      "title": "Hyr në llogari",
+      "subtitle": "Mirë se u ktheve! Shkruaj të dhënat për të vazhduar.",
+      "submit": "Hyr",
+      "forgot": "Ke harruar fjalëkalimin?",
+      "noAccount": "Nuk ke llogari?",
+      "signupLink": "Regjistrohu",
+      "linkInvalid": "Lidhja është e pavlefshme ose ka skaduar. Provo përsëri."
+    },
+    "signup": {
+      "title": "Krijo llogarinë",
+      "subtitle": "Fillo provën falas 14-ditore. Nuk nevojitet kartë.",
+      "submit": "Krijo llogarinë",
+      "haveAccount": "Ke llogari?",
+      "loginLink": "Hyr",
+      "checkEmailTitle": "Kontrollo email-in",
+      "checkEmail": "Të dërguam një lidhje konfirmimi. Hape për të aktivizuar llogarinë dhe për të regjistruar biznesin.",
+      "passwordHint": "Të paktën 8 karaktere, me shkronja dhe numra."
+    },
+    "forgot": {
+      "title": "Rivendos fjalëkalimin",
+      "subtitle": "Shkruaj email-in dhe do të të dërgojmë një lidhje për rivendosje.",
+      "submit": "Dërgo lidhjen",
+      "sent": "Nëse ekziston një llogari me këtë email, do të marrësh një lidhje rivendosjeje së shpejti.",
+      "back": "Kthehu te hyrja"
+    },
+    "reset": {
+      "title": "Vendos fjalëkalim të ri",
+      "subtitle": "Zgjidh një fjalëkalim të ri për llogarinë tënde.",
+      "submit": "Ruaj fjalëkalimin",
+      "newPassword": "Fjalëkalimi i ri",
+      "expired": "Lidhja e rivendosjes ka skaduar ose është e pavlefshme. Kërko një lidhje të re.",
+      "requestNew": "Kërko lidhje të re"
+    },
+    "errors": {
+      "invalidCredentials": "Email-i ose fjalëkalimi është i pasaktë.",
+      "emailNotConfirmed": "Konfirmo email-in para se të hysh.",
+      "userExists": "Ekziston tashmë një llogari me këtë email.",
+      "samePassword": "Fjalëkalimi i ri duhet të jetë i ndryshëm nga i vjetri."
+    }
+  },
+  "onboarding": {
+    "title": "Regjistro biznesin tënd",
+    "subtitle": "Këto të dhëna shfaqen në dokumente dhe mund t'i ndryshosh më vonë.",
+    "companyName": "Emri i biznesit",
+    "companyNamePlaceholder": "p.sh. Alfa Tregti SH.P.K.",
+    "businessNumber": "NUI (Numri Unik Identifikues)",
+    "vatNumber": "Numri i TVSH-së",
+    "phone": "Telefoni",
+    "city": "Qyteti",
+    "address": "Adresa",
+    "plan": "Zgjidh planin",
+    "perMonth": "/muaj",
+    "employees": "Deri në {count} punonjës",
+    "trialNote": "{days} ditë provë falas. Mund ta ndryshosh planin në çdo kohë.",
+    "submit": "Krijo biznesin",
+    "signedInAs": "Je kyçur si {email}",
+    "errors": {
+      "companyLimit": "Ke arritur numrin maksimal të bizneseve për llogari."
+    }
+  },
+  "nav": {
+    "main": "Kryesore",
+    "operations": "Operacionet",
+    "management": "Menaxhimi",
+    "dashboard": "Paneli",
+    "products": "Produktet",
+    "inventory": "Inventari",
+    "customers": "Klientët",
+    "suppliers": "Furnitorët",
+    "sales": "Shitjet",
+    "purchases": "Blerjet",
+    "expenses": "Shpenzimet",
+    "reports": "Raportet",
+    "employees": "Punonjësit",
+    "activity": "Aktiviteti",
+    "billing": "Abonimi",
+    "settings": "Cilësimet",
+    "openMenu": "Hap menunë",
+    "closeMenu": "Mbyll menunë"
+  },
+  "topbar": {
+    "account": "Llogaria",
+    "logout": "Dil",
+    "switchCompany": "Ndrysho biznesin",
+    "addCompany": "Shto biznes të ri"
+  },
+  "roles": {
+    "super_admin": "Super administrator",
+    "owner": "Pronar",
+    "admin": "Administrator",
+    "manager": "Menaxher",
+    "employee": "Punonjës"
+  },
+  "subscription": {
+    "status": {
+      "trialing": "Në provë",
+      "active": "Aktiv",
+      "past_due": "Pagesë e vonuar",
+      "canceled": "Anuluar",
+      "expired": "Skaduar"
+    },
+    "trialEnds": "Prova falas përfundon më {date}",
+    "plan": "Plani {name}"
+  },
+  "dashboard": {
+    "welcome": "Mirë se erdhe, {name}",
+    "subtitle": "Pasqyrë e përgjithshme për {company}",
+    "salesThisMonth": "Shitjet këtë muaj",
+    "expensesThisMonth": "Shpenzimet këtë muaj",
+    "lowStock": "Produkte me stok të ulët",
+    "products": "Produkte aktive",
+    "noData": "Ende pa të dhëna",
+    "gettingStarted": "Hapat e parë",
+    "gettingStartedSubtitle": "Moduli i produkteve dhe inventarit vjen në fazën e ardhshme.",
+    "stepCompany": "Biznesi u regjistrua",
+    "stepProducts": "Shto produktet e para",
+    "stepInventory": "Regjistro stokun fillestar",
+    "stepTeam": "Fto ekipin",
+    "companyDetails": "Të dhënat e biznesit",
+    "yourRole": "Roli yt",
+    "planLabel": "Plani",
+    "seats": "Vende për punonjës",
+    "unlimited": "Pa kufi"
+  }
+}

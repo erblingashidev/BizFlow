@@ -366,4 +366,14 @@ select tests.ok(tests.count_of('select 1 from public.companies') = 3, 'super adm
 select tests.ok(tests.count_of('select 1 from public.products') = 0, 'super admin does not bypass tenant data RLS');
 reset role;
 
+-- Tables created by future migrations do not become readable by anon by default.
+select set_config('request.jwt.claims', '', false);
+create table public.future_module (id int);
+select tests.ok(not has_table_privilege('anon', 'public.future_module', 'select'),
+  'future tables are not granted to anon');
+select tests.ok(has_table_privilege('authenticated', 'public.future_module', 'select')
+                and not has_table_privilege('authenticated', 'public.future_module', 'truncate'),
+  'future tables: authenticated keeps DML but not TRUNCATE');
+drop table public.future_module;
+
 \echo 'ALL DATABASE TESTS PASSED'
