@@ -46,36 +46,44 @@ begin
 end;
 $stub$;
 
-create table storage.buckets (
-  id                 text primary key,
-  name               text not null,
-  public             boolean default false,
-  file_size_limit    bigint,
-  allowed_mime_types text[]
-);
-
-create table storage.objects (
-  id         uuid primary key default gen_random_uuid(),
-  bucket_id  text references storage.buckets (id),
-  name       text not null,
-  owner      uuid,
-  created_at timestamptz default now()
-);
-alter table storage.objects enable row level security;
-
-create or replace function storage.foldername(name text) returns text[]
-language plpgsql immutable as $$
-declare
-  parts text[] := string_to_array(name, '/');
+-- Skipped when a real Supabase Storage server has already migrated the storage schema.
+do $stub$
 begin
-  return parts[1 : array_length(parts, 1) - 1];
+  if to_regclass('storage.objects') is null then
+    create table storage.buckets (
+      id                 text primary key,
+      name               text not null,
+      public             boolean default false,
+      file_size_limit    bigint,
+      allowed_mime_types text[]
+    );
+
+    create table storage.objects (
+      id         uuid primary key default gen_random_uuid(),
+      bucket_id  text references storage.buckets (id),
+      name       text not null,
+      owner      uuid,
+      created_at timestamptz default now()
+    );
+    alter table storage.objects enable row level security;
+
+    create or replace function storage.foldername(name text) returns text[]
+    language plpgsql immutable as $$
+    declare
+      parts text[] := string_to_array(name, '/');
+    begin
+      return parts[1 : array_length(parts, 1) - 1];
+    end;
+    $$;
+
+    grant select, insert, update, delete on storage.objects to authenticated, service_role;
+    grant select on storage.buckets to authenticated, service_role;
+  end if;
 end;
-$$;
+$stub$;
 
 grant usage on schema public, auth, storage to anon, authenticated, service_role;
 grant execute on all functions in schema auth to anon, authenticated, service_role;
-grant select, insert, update, delete on storage.objects to authenticated, service_role;
-grant select on storage.buckets to authenticated, service_role;
 
 -- Mirror Supabase's default privileges on the public schema.
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;

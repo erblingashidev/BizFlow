@@ -12,6 +12,7 @@ import {
   UserCog,
   Users,
   Wallet,
+  Warehouse,
   type LucideIcon,
 } from "lucide-react";
 import type { Permission } from "@/lib/auth/permissions";
@@ -37,13 +38,14 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     key: "operations",
     items: [
-      { key: "products", href: "/products", icon: Package, permission: "products.view", available: false },
-      { key: "inventory", href: "/inventory", icon: Boxes, permission: "inventory.view", available: false },
+      { key: "products", href: "/products", icon: Package, permission: "products.view", available: true },
+      { key: "inventory", href: "/inventory", icon: Boxes, permission: "inventory.view", available: true },
+      { key: "warehouses", href: "/warehouses", icon: Warehouse, permission: "warehouses.view", available: true },
+      { key: "customers", href: "/customers", icon: Users, permission: "customers.view", available: true },
+      { key: "suppliers", href: "/suppliers", icon: Receipt, permission: "suppliers.view", available: true },
       { key: "sales", href: "/sales", icon: ShoppingCart, permission: "sales.view", available: false },
       { key: "purchases", href: "/purchases", icon: Truck, permission: "purchases.view", available: false },
       { key: "expenses", href: "/expenses", icon: Wallet, permission: "expenses.view", available: false },
-      { key: "customers", href: "/customers", icon: Users, permission: "customers.view", available: false },
-      { key: "suppliers", href: "/suppliers", icon: Receipt, permission: "suppliers.view", available: false },
     ],
   },
   {

@@ -6,7 +6,9 @@ import type { z } from "zod";
  */
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T; message?: string }
-  | { ok: false; error: string; fieldErrors?: Record<string, string> };
+  | ActionFailure;
+
+export type ActionFailure = { ok: false; error: string; fieldErrors?: Record<string, string> };
 
 export function fieldErrorsFromZod(error: z.ZodError): Record<string, string> {
   const out: Record<string, string> = {};
@@ -17,6 +19,6 @@ export function fieldErrorsFromZod(error: z.ZodError): Record<string, string> {
   return out;
 }
 
-export function invalidInput(error: z.ZodError): ActionResult<never> {
+export function invalidInput(error: z.ZodError): ActionFailure {
   return { ok: false, error: "errors.invalidInput", fieldErrors: fieldErrorsFromZod(error) };
 }

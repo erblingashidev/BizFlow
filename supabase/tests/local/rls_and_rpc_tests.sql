@@ -26,13 +26,16 @@ begin
 end;
 $$;
 
--- Asserts that p_sql raises; p_expected matches SQLSTATE or a substring of the message.
+-- Asserts that p_sql raises; p_expected matches SQLSTATE, the hint, or a substring of the message.
 create function tests.throws(p_sql text, p_expected text, p_label text) returns void language plpgsql as $$
+declare
+  v_hint text;
 begin
   begin
     execute p_sql;
   exception when others then
-    if sqlstate = p_expected or position(p_expected in sqlerrm) > 0 then
+    get stacked diagnostics v_hint = pg_exception_hint;
+    if sqlstate = p_expected or v_hint = p_expected or position(p_expected in sqlerrm) > 0 then
       raise notice 'ok - % (raised %: %)', p_label, sqlstate, sqlerrm;
       return;
     end if;
@@ -295,7 +298,10 @@ select tests.throws(format($$update public.companies set status = 'suspended' wh
   'platform-managed', 'owner cannot change company status');
 select tests.ok(tests.affected(format($$update public.companies set city = 'Pejë' where id = %L$$, :'company_a')) = 1,
   'owner can edit company profile');
-select tests.ok(tests.affected(format($$update public.products set deleted_at = now() where id = %L$$, :'product_a')) = 1,
+select tests.throws(format($$update public.products set deleted_at = now() where id = %L$$, :'product_a'),
+  'product_has_stock', 'product with stock cannot be deleted');
+insert into public.products (company_id, sku, name) values (:'company_a', 'DEL-1', 'Delete me') returning id as product_del \gset
+select tests.ok(tests.affected(format($$update public.products set deleted_at = now() where id = %L$$, :'product_del')) = 1,
   'owner can soft-delete products');
 select tests.throws($$update public.profiles set email = 'x@y.z' where id = '00000000-0000-0000-0000-0000000000a1'$$,
   '42501', 'profile email column not user-writable');
@@ -322,12 +328,18 @@ select tests.throws(format($$insert into public.sales_order_items (company_id, s
 select tests.throws(format($$insert into public.sales_orders (company_id, order_number, warehouse_id, subtotal, total) values (%L, 'SO-BAD', %L, 10, 5)$$,
   :'company_a', :'warehouse_a'), '23514', 'order total must equal subtotal - discount + tax');
 
--- Login activity log: one row per active company.
-select public.log_login('203.0.113.7', 'vitest') as login_rows \gset
+-- Login activity log: written by the server (service role), one row per active company.
+select tests.throws($$select public.log_login('00000000-0000-0000-0000-0000000000a1', '203.0.113.7', 'x')$$,
+  '42501', 'members cannot write login rows');
+reset role;
+set role service_role;
+select public.log_login('00000000-0000-0000-0000-0000000000a1', '203.0.113.7', 'vitest') as login_rows \gset
+reset role;
+set role authenticated;
 select tests.ok(:'login_rows'::int = 1, 'log_login writes one row for one company');
 select tests.ok(tests.count_of(format($$select 1 from public.activity_logs where company_id = %L and action = 'auth.login'
   and ip_address = '203.0.113.7'$$, :'company_a')) = 1, 'login row visible to owner with IP');
-select tests.throws(format($$select public.log_activity(%L, 'x.y')$$, :'company_b'), '42501', 'cannot log into foreign company');
+select tests.throws(format($$select public.log_activity(%L, 'x.y')$$, :'company_a'), '42501', 'members cannot call log_activity');
 select tests.throws($$insert into public.activity_logs (action) values ('a.b')$$, '42501', 'activity_logs not directly insertable');
 
 -- Storage paths are tenant-scoped by first folder.
@@ -376,4 +388,4 @@ select tests.ok(has_table_privilege('authenticated', 'public.future_module', 'se
   'future tables: authenticated keeps DML but not TRUNCATE');
 drop table public.future_module;
 
-\echo 'ALL DATABASE TESTS PASSED'
+\echo 'PHASE 1 DATABASE TESTS PASSED'

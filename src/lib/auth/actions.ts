@@ -6,7 +6,8 @@ import type { AuthError } from "@supabase/supabase-js";
 import { getSiteUrl } from "@/lib/env";
 import { invalidInput, type ActionResult } from "@/lib/actions";
 import { getSafeRedirectPath, LOGIN_PATH, ONBOARDING_PATH } from "@/lib/auth/routes";
-import { createClient, createClientForAccessToken } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import {
   forgotPasswordSchema,
   loginSchema,
@@ -64,13 +65,16 @@ export async function signInAction(input: LoginInput): Promise<ActionResult> {
     return { ok: false, error: error ? authErrorKey(error) : "errors.generic" };
   }
 
-  // Audit the login. Failure to log must not block signing in.
+  // Audit the login with the service role for the user Supabase Auth just authenticated;
+  // members cannot write login rows themselves. Failure to log must not block signing in.
   try {
     const meta = await requestMeta();
-    await createClientForAccessToken(data.session.access_token).rpc("log_login", {
+    const { error: logError } = await createAdminClient().rpc("log_login", {
+      p_user_id: data.user.id,
       p_ip: meta.ip ?? undefined,
       p_user_agent: meta.userAgent ?? undefined,
     });
+    if (logError) throw logError;
   } catch (logError) {
     console.error("log_login failed", logError);
   }

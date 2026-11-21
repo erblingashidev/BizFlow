@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Docker-free local backend for development and end-to-end testing:
-# Supabase Auth (GoTrue) + PostgREST against a local Postgres, behind a proxy that mimics
-# the Supabase URL layout (http://localhost:54321/{auth,rest}/v1). No Storage/Realtime.
+# Supabase Auth (GoTrue) + PostgREST (+ optionally Supabase Storage) against a local Postgres,
+# behind a proxy that mimics the Supabase URL layout (http://localhost:54321/{auth,rest,storage}/v1).
+# No Realtime.
 #
 # Prefer `supabase start` when Docker is available. This exists for CI sandboxes and
 # machines without Docker.
@@ -12,6 +13,10 @@
 #
 # Requires: psql/createdb with a superuser connection via PG* env vars, Node, Python 3
 # (optional, for the SMTP sink: `pip install aiosmtpd`). Emails land in .local-stack/mail/.
+#
+# Storage is optional: point STORAGE_API_DIR at a built checkout of github.com/supabase/storage
+# (`npm ci && npm run build`; needs Node >= 26, set STORAGE_NODE to that binary). Files are kept
+# in .local-stack/storage/. Without it, the stub storage schema is used and uploads fail.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -25,6 +30,8 @@ PGPORT_="${PGPORT:-5432}"
 PGUSER_="${PGUSER:-$(whoami)}"
 PGPASSWORD_="${PGPASSWORD:-}"
 AUTHENTICATOR_PASSWORD="${AUTHENTICATOR_PASSWORD:-authenticator-local}"
+STORAGE_API_DIR="${STORAGE_API_DIR:-}"
+STORAGE_NODE="${STORAGE_NODE:-node}"
 
 mkdir -p "$DIR/mail"
 db_url() { echo "postgres://${PGUSER_}${PGPASSWORD_:+:$PGPASSWORD_}@${PGHOST_}:${PGPORT_}/${DB_NAME}?sslmode=disable$1"; }
@@ -65,6 +72,21 @@ auth_env() {
   export GOTRUE_MAILER_URLPATHS_RECOVERY=/auth/v1/verify GOTRUE_MAILER_URLPATHS_CONFIRMATION=/auth/v1/verify
 }
 
+storage_enabled() { [[ -n "$STORAGE_API_DIR" && -f "$STORAGE_API_DIR/dist/start/server.js" ]]; }
+
+storage_serve() {
+  mkdir -p "$DIR/storage"
+  cd "$STORAGE_API_DIR"
+  exec env -i HOME="$HOME" PATH="$(dirname "$(command -v "$STORAGE_NODE")"):/usr/bin:/bin" NODE_ENV=production \
+    SERVER_HOST=127.0.0.1 SERVER_PORT=5000 SERVER_ADMIN_PORT=5001 \
+    AUTH_JWT_SECRET="$JWT_SECRET" AUTH_JWT_ALGORITHM=HS256 \
+    DATABASE_URL="$(db_url '')" DB_INSTALL_ROLES=false DB_SUPER_USER="$PGUSER_" \
+    DB_ANON_ROLE=anon DB_SERVICE_ROLE=service_role DB_AUTHENTICATED_ROLE=authenticated \
+    STORAGE_BACKEND=file STORAGE_FILE_BACKEND_PATH="$DIR/storage" GLOBAL_S3_BUCKET=bizflow \
+    TENANT_ID=local REGION=local UPLOAD_FILE_SIZE_LIMIT=52428800 LOG_LEVEL=warn \
+    "$STORAGE_NODE" "$STORAGE_API_DIR/dist/start/server.js"
+}
+
 setup() {
   download
   dropdb --if-exists "$DB_NAME"
@@ -73,6 +95,23 @@ setup() {
   (auth_env && "$DIR/auth" migrate)
 
   local PSQL=(psql -v ON_ERROR_STOP=1 -qX -d "$DB_NAME")
+  "${PSQL[@]}" -c "do \$\$ begin
+      if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin noinherit; end if;
+      if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin noinherit; end if;
+      if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role nologin noinherit bypassrls; end if;
+    end \$\$;"
+  if storage_enabled; then
+    # The storage server migrates its schema on startup; run it once until that is done.
+    (storage_serve) > "$DIR/storage-setup.log" 2>&1 &
+    local pid=$!
+    for _ in $(seq 1 60); do
+      if curl -fsS http://127.0.0.1:5000/status > /dev/null 2>&1; then break; fi
+      sleep 1
+    done
+    kill "$pid" 2>/dev/null || true
+    wait "$pid" 2>/dev/null || true
+    "${PSQL[@]}" -tAc "select count(*) from storage.migrations" > /dev/null
+  fi
   "${PSQL[@]}" -f "$ROOT/supabase/tests/local/supabase_stub.sql"
   "${PSQL[@]}" -c "do \$\$ begin
       if not exists (select 1 from pg_roles where rolname = 'authenticator') then
@@ -102,9 +141,12 @@ start() {
     PGRST_DB_SCHEMAS=public PGRST_DB_ANON_ROLE=anon PGRST_JWT_SECRET="$JWT_SECRET" \
     PGRST_SERVER_HOST=127.0.0.1 PGRST_SERVER_PORT=3001 \
     nohup ./postgrest > postgrest.log 2>&1 & echo $! > postgrest.pid
+  if storage_enabled; then
+    (storage_serve > "$DIR/storage.log" 2>&1 & echo $! > "$DIR/storage.pid")
+  fi
   nohup node -e '
     const http = require("node:http");
-    const routes = [["/auth/v1", 9999], ["/rest/v1", 3001]];
+    const routes = [["/auth/v1", 9999], ["/rest/v1", 3001], ["/storage/v1", 5000]];
     http.createServer((req, res) => {
       const m = routes.find(([p]) => req.url.startsWith(p));
       if (!m) { res.writeHead(404); return res.end(); }
@@ -127,6 +169,10 @@ asyncio.new_event_loop().run_forever()' > smtp.log 2>&1 & echo $! > smtp.pid
   fi
   sleep 2
   curl -fsS http://localhost:54321/auth/v1/health > /dev/null && echo "auth + rest up on http://localhost:54321"
+  if storage_enabled; then
+    for _ in $(seq 1 30); do curl -fsS http://127.0.0.1:5000/status > /dev/null 2>&1 && break; sleep 1; done
+    curl -fsS http://127.0.0.1:5000/status > /dev/null && echo "storage up on http://localhost:54321/storage/v1"
+  fi
 }
 
 stop() {

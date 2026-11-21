@@ -1,10 +1,4 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   public: {
@@ -703,6 +697,7 @@ export type Database = {
           company_id: string;
           created_at: string;
           created_by: string | null;
+          default_warehouse_id: string | null;
           deleted_at: string | null;
           description: string | null;
           id: string;
@@ -726,6 +721,7 @@ export type Database = {
           company_id: string;
           created_at?: string;
           created_by?: string | null;
+          default_warehouse_id?: string | null;
           deleted_at?: string | null;
           description?: string | null;
           id?: string;
@@ -748,6 +744,7 @@ export type Database = {
           company_id?: string;
           created_at?: string;
           created_by?: string | null;
+          default_warehouse_id?: string | null;
           deleted_at?: string | null;
           description?: string | null;
           id?: string;
@@ -785,6 +782,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "products_default_warehouse_fk";
+            columns: ["default_warehouse_id", "company_id"];
+            isOneToOne: false;
+            referencedRelation: "warehouses";
+            referencedColumns: ["id", "company_id"];
           },
         ];
       };
@@ -888,6 +892,13 @@ export type Database = {
             columns: ["purchase_order_id", "company_id"];
             isOneToOne: false;
             referencedRelation: "purchase_orders";
+            referencedColumns: ["id", "company_id"];
+          },
+          {
+            foreignKeyName: "purchase_order_items_product_fk";
+            columns: ["product_id", "company_id"];
+            isOneToOne: false;
+            referencedRelation: "product_stock_overview";
             referencedColumns: ["id", "company_id"];
           },
           {
@@ -1155,6 +1166,13 @@ export type Database = {
             foreignKeyName: "sales_order_items_product_fk";
             columns: ["product_id", "company_id"];
             isOneToOne: false;
+            referencedRelation: "product_stock_overview";
+            referencedColumns: ["id", "company_id"];
+          },
+          {
+            foreignKeyName: "sales_order_items_product_fk";
+            columns: ["product_id", "company_id"];
+            isOneToOne: false;
             referencedRelation: "products";
             referencedColumns: ["id", "company_id"];
           },
@@ -1303,6 +1321,13 @@ export type Database = {
             foreignKeyName: "stock_levels_product_fk";
             columns: ["product_id", "company_id"];
             isOneToOne: false;
+            referencedRelation: "product_stock_overview";
+            referencedColumns: ["id", "company_id"];
+          },
+          {
+            foreignKeyName: "stock_levels_product_fk";
+            columns: ["product_id", "company_id"];
+            isOneToOne: false;
             referencedRelation: "products";
             referencedColumns: ["id", "company_id"];
           },
@@ -1379,6 +1404,13 @@ export type Database = {
             isOneToOne: false;
             referencedRelation: "profiles";
             referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "stock_movements_product_fk";
+            columns: ["product_id", "company_id"];
+            isOneToOne: false;
+            referencedRelation: "product_stock_overview";
+            referencedColumns: ["id", "company_id"];
           },
           {
             foreignKeyName: "stock_movements_product_fk";
@@ -1662,7 +1694,56 @@ export type Database = {
       };
     };
     Views: {
-      [_ in never]: never;
+      product_stock_overview: {
+        Row: {
+          barcode: string | null;
+          category_id: string | null;
+          company_id: string;
+          created_at: string;
+          default_warehouse_id: string | null;
+          id: string;
+          image_path: string | null;
+          is_active: boolean;
+          min_stock: number;
+          name: string;
+          needs_reorder: boolean | null;
+          product_type: string;
+          purchase_price: number;
+          quantity: number | null;
+          sale_price: number;
+          sku: string;
+          stock_status: string | null;
+          stock_value: number | null;
+          track_inventory: boolean;
+          unit: string;
+          updated_at: string;
+          vat_rate: number;
+        };
+        ComputedFields: never;
+        Relationships: [
+          {
+            foreignKeyName: "products_category_fk";
+            columns: ["category_id", "company_id"];
+            isOneToOne: false;
+            referencedRelation: "product_categories";
+            referencedColumns: ["id", "company_id"];
+          },
+          {
+            foreignKeyName: "products_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "companies";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "products_default_warehouse_fk";
+            columns: ["default_warehouse_id", "company_id"];
+            isOneToOne: false;
+            referencedRelation: "warehouses";
+            referencedColumns: ["id", "company_id"];
+          },
+        ];
+      };
     };
     Functions: {
       apply_stock_movement: {
@@ -1713,9 +1794,26 @@ export type Database = {
         };
         Returns: string;
       };
-      has_permission: {
-        Args: { p_company_id: string; p_permission: string };
-        Returns: boolean;
+      dashboard_summary: { Args: { p_company_id: string }; Returns: Json };
+      has_permission: { Args: { p_company_id: string; p_permission: string }; Returns: boolean };
+      inventory_report: {
+        Args: { p_category_id?: string; p_company_id: string; p_warehouse_id?: string };
+        Returns: {
+          category_name: string;
+          cost_value: number;
+          is_active: boolean;
+          min_stock: number;
+          name: string;
+          product_id: string;
+          purchase_price: number;
+          quantity: number;
+          retail_value: number;
+          sale_price: number;
+          sku: string;
+          stock_status: string;
+          total_quantity: number;
+          unit: string;
+        }[];
       };
       is_member: { Args: { p_company_id: string }; Returns: boolean };
       is_super_admin: { Args: Record<PropertyKey, never>; Returns: boolean };
@@ -1730,14 +1828,42 @@ export type Database = {
         Returns: string;
       };
       log_login: {
-        Args: { p_ip?: string; p_user_agent?: string };
+        Args: { p_ip?: string; p_user_agent?: string; p_user_id: string };
         Returns: number;
       };
       member_role: { Args: { p_company_id: string }; Returns: string };
       my_permissions: { Args: { p_company_id: string }; Returns: string[] };
-      next_document_number: {
-        Args: { p_company_id: string; p_doc_type: string };
-        Returns: string;
+      next_document_number: { Args: { p_company_id: string; p_doc_type: string }; Returns: string };
+      record_stock_count: {
+        Args: {
+          p_company_id: string;
+          p_counted: number;
+          p_note?: string;
+          p_product_id: string;
+          p_warehouse_id: string;
+        };
+        Returns: {
+          balance_after: number;
+          company_id: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          movement_type: string;
+          note: string | null;
+          product_id: string;
+          quantity: number;
+          reference_id: string | null;
+          reference_type: string | null;
+          transfer_group_id: string | null;
+          unit_cost: number | null;
+          warehouse_id: string;
+        };
+        SetofOptions: {
+          from: "*";
+          to: "stock_movements";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
       };
       record_stock_movement: {
         Args: {
@@ -1773,6 +1899,10 @@ export type Database = {
         };
       };
       safe_inet: { Args: { p_value: string }; Returns: unknown };
+      set_default_warehouse: {
+        Args: { p_company_id: string; p_warehouse_id: string };
+        Returns: undefined;
+      };
       shares_company_with: { Args: { p_user_id: string }; Returns: boolean };
       slugify: { Args: { p_value: string }; Returns: string };
       transfer_stock: {
@@ -1787,6 +1917,15 @@ export type Database = {
         Returns: string;
       };
       try_uuid: { Args: { p_value: string }; Returns: string };
+      warehouse_stock_summary: {
+        Args: { p_company_id: string };
+        Returns: {
+          product_count: number;
+          quantity: number;
+          stock_value: number;
+          warehouse_id: string;
+        }[];
+      };
     };
     Enums: {
       [_ in never]: never;
@@ -1799,10 +1938,7 @@ export type Database = {
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<
-  keyof Database,
-  "public"
->];
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
@@ -1814,19 +1950,15 @@ export type Tables<
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-}
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R;
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R;
       }
       ? R
@@ -1835,15 +1967,14 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-}
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I;
     }
@@ -1859,15 +1990,14 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never) = never,
-> = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-}
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U;
     }
@@ -1883,15 +2013,14 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never) = never,
-> = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-}
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
@@ -1906,9 +2035,7 @@ export type CompositeTypes<
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never) = never,
-> = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals;
-}
+> = PublicCompositeTypeNameOrOptions extends { schema: keyof DatabaseWithoutInternals }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]

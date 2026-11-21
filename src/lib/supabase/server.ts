@@ -1,7 +1,6 @@
 import "server-only";
 
 import { createServerClient } from "@supabase/ssr";
-import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 import { requirePublicSupabaseEnv } from "@/lib/env";
 import type { Database } from "@/types/database";
@@ -29,11 +28,3 @@ export async function createClient() {
   });
 }
 
-/** Client bound to a specific access token, e.g. right after sign-in in the same request. */
-export function createClientForAccessToken(accessToken: string) {
-  const { url, anonKey } = requirePublicSupabaseEnv();
-  return createSupabaseClient<Database>(url, anonKey, {
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-  });
-}
