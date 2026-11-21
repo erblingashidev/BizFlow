@@ -23,8 +23,10 @@ done
 echo "re-applying reference data (idempotency check)"
 "${PSQL[@]}" --single-transaction -f "$ROOT/supabase/migrations/20261121000900_seed_reference_data.sql"
 
-"${PSQL[@]}" -o /dev/null -f "$ROOT/supabase/tests/local/rls_and_rpc_tests.sql" 2>&1 \
-  | sed -E 's/^psql:[^ ]+ NOTICE: +//'
+for suite in rls_and_rpc_tests phase2_catalog_inventory_tests; do
+  "${PSQL[@]}" -o /dev/null -f "$ROOT/supabase/tests/local/$suite.sql" 2>&1 \
+    | sed -E 's/^psql:[^ ]+ NOTICE: +//'
+done
 
 if [[ "${KEEP_DB:-0}" != "1" ]]; then
   dropdb "$DB_NAME"

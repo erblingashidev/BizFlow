@@ -130,13 +130,23 @@ async function main() {
     "branch warehouse",
   );
 
-  const categories = must(
+  const topCategories = must(
     await owner
       .from("product_categories")
       .insert(["Ushqimore", "Pije", "Higjienë", "Shtëpiake"].map((name) => ({ company_id: companyId, name })))
       .select("id, name"),
     "categories",
   );
+  const drinks = topCategories.find((c) => c.name === "Pije")!;
+  const coffee = must(
+    await owner
+      .from("product_categories")
+      .insert({ company_id: companyId, name: "Kafe", parent_id: drinks.id })
+      .select("id, name")
+      .single(),
+    "sub-category",
+  );
+  const categories = [...topCategories, coffee];
   const cat = (name: string) => categories.find((c) => c.name === name)!.id;
 
   const productRows = [
@@ -144,7 +154,7 @@ async function main() {
     { sku: "UHQ-002", name: "Vaj luledielli 1L", category: "Ushqimore", purchase: 1.45, sale: 1.99, vat: 8, min: 30, stock: 18 },
     { sku: "UHQ-003", name: "Sheqer 1kg", category: "Ushqimore", purchase: 0.78, sale: 1.05, vat: 8, min: 25, stock: 60 },
     { sku: "PIJ-001", name: "Ujë mineral 1.5L (6 copë)", category: "Pije", purchase: 1.8, sale: 2.6, vat: 18, min: 20, stock: 45 },
-    { sku: "PIJ-002", name: "Kafe turke 500g", category: "Pije", purchase: 3.1, sale: 4.5, vat: 18, min: 10, stock: 6 },
+    { sku: "PIJ-002", name: "Kafe turke 500g", category: "Kafe", purchase: 3.1, sale: 4.5, vat: 18, min: 10, stock: 6 },
     { sku: "HIG-001", name: "Detergjent rrobash 3kg", category: "Higjienë", purchase: 5.2, sale: 7.49, vat: 18, min: 8, stock: 15 },
     { sku: "HIG-002", name: "Letër higjienike (10 copë)", category: "Higjienë", purchase: 2.4, sale: 3.49, vat: 18, min: 15, stock: 9 },
     { sku: "SHT-001", name: "Qese mbeturinash 60L", category: "Shtëpiake", purchase: 0.9, sale: 1.5, vat: 18, min: 10, stock: 30 },
@@ -163,7 +173,7 @@ async function main() {
           sale_price: p.sale,
           vat_rate: p.vat,
           min_stock: p.min,
-          created_by: ids.owner,
+          default_warehouse_id: mainWarehouse.id,
         })),
       )
       .select("id, sku"),
@@ -200,7 +210,7 @@ async function main() {
   );
   console.log("✓ opening stock and one transfer");
 
-  must(
+  const customers = must(
     await owner
       .from("customers")
       .insert([
@@ -223,6 +233,91 @@ async function main() {
   );
   console.log("✓ customers and suppliers");
 
+  // Order headers only (line items and stock effects arrive with the sales/purchases module),
+  // spread over the last six months so the dashboard chart has history.
+  const today = new Date();
+  const isoDay = (monthsAgo: number, day: number) => {
+    const d = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() - monthsAgo, day));
+    return d > today ? today.toISOString().slice(0, 10) : d.toISOString().slice(0, 10);
+  };
+  const split = (gross: number, vat = 18) => {
+    const subtotal = Math.round((gross / (1 + vat / 100)) * 100) / 100;
+    return { subtotal, tax_total: Math.round((gross - subtotal) * 100) / 100, total: gross };
+  };
+  // next_document_number is internal to the database, so the seed numbers its orders in the
+  // same format and then advances the sequences past them.
+  const year = today.getUTCFullYear();
+  const docNumber = (prefix: "SO" | "PO", n: number) => `${prefix}-${year}-${String(n).padStart(5, "0")}`;
+
+  const salesPlan: { monthsAgo: number; day: number; gross: number; status: string }[] = [];
+  const salesByMonth = [1180, 1460, 1325, 1710, 1895, 1240];
+  salesByMonth.forEach((gross, i) => {
+    const monthsAgo = 5 - i;
+    salesPlan.push({ monthsAgo, day: 6, gross: Math.round(gross * 0.55 * 100) / 100, status: "fulfilled" });
+    salesPlan.push({ monthsAgo, day: 18, gross: Math.round(gross * 0.45 * 100) / 100, status: monthsAgo === 0 ? "confirmed" : "fulfilled" });
+  });
+  salesPlan.push({ monthsAgo: 0, day: today.getUTCDate(), gross: 86.4, status: "draft" });
+  for (const [i, o] of salesPlan.entries()) {
+    must(
+      await owner
+        .from("sales_orders")
+        .insert({
+          company_id: companyId,
+          order_number: docNumber("SO", i + 1),
+          customer_id: customers[i % customers.length].id,
+          warehouse_id: i % 3 === 2 ? branch.id : mainWarehouse.id,
+          status: o.status,
+          order_date: isoDay(o.monthsAgo, o.day),
+          ...split(o.gross),
+          payment_status: o.status === "fulfilled" ? "paid" : "unpaid",
+          amount_paid: o.status === "fulfilled" ? o.gross : 0,
+        })
+        .select("id")
+        .single(),
+      "sales order",
+    );
+  }
+
+  const purchasePlan = [
+    { monthsAgo: 5, day: 3, gross: 820, status: "received" },
+    { monthsAgo: 4, day: 4, gross: 610, status: "received" },
+    { monthsAgo: 3, day: 2, gross: 935, status: "received" },
+    { monthsAgo: 2, day: 5, gross: 780, status: "received" },
+    { monthsAgo: 1, day: 3, gross: 1040, status: "received" },
+    { monthsAgo: 0, day: 2, gross: 690, status: "ordered" },
+    { monthsAgo: 0, day: today.getUTCDate(), gross: 312.5, status: "draft" },
+  ];
+  for (const [i, o] of purchasePlan.entries()) {
+    must(
+      await owner
+        .from("purchase_orders")
+        .insert({
+          company_id: companyId,
+          order_number: docNumber("PO", i + 1),
+          supplier_id: suppliers[i % suppliers.length].id,
+          warehouse_id: mainWarehouse.id,
+          status: o.status,
+          order_date: isoDay(o.monthsAgo, o.day),
+          ...split(o.gross),
+        })
+        .select("id")
+        .single(),
+      "purchase order",
+    );
+  }
+  for (const [docType, next] of [["sales_order", salesPlan.length + 1], ["purchase_order", purchasePlan.length + 1]] as const) {
+    must(
+      await admin
+        .from("document_sequences")
+        .update({ next_value: next })
+        .eq("company_id", companyId)
+        .eq("doc_type", docType)
+        .select("doc_type"),
+      `sequence ${docType}`,
+    );
+  }
+  console.log(`✓ ${salesPlan.length} sales orders and ${purchasePlan.length} purchase orders`);
+
   const expenseCategories = must(
     await owner.from("expense_categories").select("id, name").eq("company_id", companyId),
     "expense categories",
@@ -232,9 +327,9 @@ async function main() {
     await owner
       .from("expenses")
       .insert([
-        { company_id: companyId, category_id: expenseCat("Qiraja"), description: "Qiraja e lokalit", amount: 650, payment_method: "bank_transfer", created_by: ids.owner },
-        { company_id: companyId, category_id: expenseCat("Shërbimet komunale"), description: "Rryma (KESCO)", amount: 142.37, vat_amount: 11.47, payment_method: "bank_transfer", created_by: ids.owner },
-        { company_id: companyId, category_id: expenseCat("Transporti"), supplier_id: suppliers[0].id, description: "Transport malli", amount: 45, payment_method: "cash", created_by: ids.owner },
+        { company_id: companyId, category_id: expenseCat("Qiraja"), description: "Qiraja e lokalit", amount: 650, payment_method: "bank_transfer" },
+        { company_id: companyId, category_id: expenseCat("Shërbimet komunale"), description: "Rryma (KESCO)", amount: 142.37, vat_amount: 11.47, payment_method: "bank_transfer" },
+        { company_id: companyId, category_id: expenseCat("Transporti"), supplier_id: suppliers[0].id, description: "Transport malli", amount: 45, payment_method: "cash" },
       ], { defaultToNull: false })
       .select("id"),
     "expenses",
